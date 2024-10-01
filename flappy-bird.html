@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flappy Bird Clone</title>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: linear-gradient(to bottom, #87CEEB, #2c3e50);
+            color: white;
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+        }
+
+        #controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+        }
+
+        button {
+            padding: 10px 15px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background-color: #3498db;
+            color: white;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+</head>
+<body>
+    <div id="controls">
+        <button id="pauseButton">Pause</button>
+        <button id="resumeButton" style="display:none;">Resume</button>
+    </div>
+    <script>
+        let bird;
+        let pipes = [];
+        let gravity = 0.6;
+        let score = 0;
+        let highScore = 0;
+        let gamePaused = false;
+        let birdImage;
+
+        function preload() {
+            birdImage = loadImage('bird.png'); // Load the bird image
+        }
+
+        function setup() {
+            createCanvas(windowWidth * 0.8, windowHeight * 0.8);
+            resetGame();
+
+            const pauseButton = document.getElementById('pauseButton');
+            const resumeButton = document.getElementById('resumeButton');
+
+            pauseButton.addEventListener('click', pauseGame);
+            resumeButton.addEventListener('click', resumeGame);
+        }
+
+        function draw() {
+            if (!gamePaused) {
+                background(135, 206, 235); // Sky blue
+                bird.update();
+                bird.show();
+
+                if (frameCount % 75 === 0) {
+                    pipes.push(new Pipe());
+                }
+
+                for (let i = pipes.length - 1; i >= 0; i--) {
+                    pipes[i].update();
+                    pipes[i].show();
+
+                    if (pipes[i].offscreen()) {
+                        pipes.splice(i, 1);
+                        score++;
+                    }
+
+                    if (pipes[i].hits(bird)) {
+                        if (score > highScore) {
+                            highScore = score;
+                        }
+                        noLoop();
+                        setTimeout(resetGame, 1000); // Restart after 1 second
+                    }
+                }
+
+                fill(255);
+                textSize(32);
+                text('Score: ' + score, 10, 30);
+                text('High Score: ' + highScore, 10, 70);
+            }
+        }
+
+        function keyPressed() {
+            if (key === ' ') {
+                bird.up();
+            }
+        }
+
+        function touchStarted() {
+            bird.up();
+            return false; // prevent default
+        }
+
+        function pauseGame() {
+            gamePaused = true;
+            document.getElementById('pauseButton').style.display = 'none';
+            document.getElementById('resumeButton').style.display = 'inline';
+        }
+
+        function resumeGame() {
+            gamePaused = false;
+            document.getElementById('pauseButton').style.display = 'inline';
+            document.getElementById('resumeButton').style.display = 'none';
+        }
+
+        function resetGame() {
+            bird = new Bird();
+            pipes = [];
+            score = 0;
+            gamePaused = false;
+            loop();
+        }
+
+        class Bird {
+            constructor() {
+                this.y = height / 2;
+                this.x = 64;
+                this.gravity = 0.6;
+                this.lift = -15;
+                this.velocity = 0;
+                this.size = 32; // Adjust size if needed
+            }
+
+            up() {
+                this.velocity += this.lift;
+            }
+
+            update() {
+                this.velocity += this.gravity;
+                this.y += this.velocity;
+
+                if (this.y > height) {
+                    this.y = height;
+                    this.velocity = 0;
+                }
+
+                if (this.y < 0) {
+                    this.y = 0;
+                    this.velocity = 0;
+                }
+            }
+
+            show() {
+                image(birdImage, this.x, this.y, this.size, this.size); // Display the bird image
+            }
+        }
+
+        class Pipe {
+            constructor() {
+                this.top = random(height / 6, (3 / 4) * height - 100); // Increase gap
+                this.bottom = height - this.top - 200; // Increase bottom gap
+                this.x = width;
+                this.w = 40;
+                this.speed = 6;
+            }
+
+            hits(bird) {
+                if (bird.y < this.top || bird.y > height - this.bottom) {
+                    if (bird.x > this.x && bird.x < this.x + this.w) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            update() {
+                this.x -= this.speed;
+            }
+
+            show() {
+                fill(0, 255, 0); // Green color for the pipes
+                rect(this.x, 0, this.w, this.top);
+                rect(this.x, height - this.bottom, this.w, this.bottom);
+            }
+
+            offscreen() {
+                return this.x < -this.w;
+            }
+        }
+
+        function windowResized() {
+            resizeCanvas(windowWidth * 0.8, windowHeight * 0.8);
+        }
+    </script>
+</body>
+</html>
